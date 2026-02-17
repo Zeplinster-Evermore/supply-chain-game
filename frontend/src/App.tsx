@@ -6,6 +6,7 @@ import { PlayerLobbyView } from "./views/PlayerLobbyView.tsx";
 import { AdminLobbyView } from "./views/AdminLobbyView.tsx";
 import { AdminGroupView } from "./views/AdminGroupView.tsx";
 import { AdminGameView } from "./views/AdminGameView.tsx";
+import "./styles/colors.css"
 import "./styles/LobbyView.css";
 
 import type { Game } from "./types";

@@ -38,22 +38,22 @@
     padding: 0.5rem;
     font-size: 1rem;
     border-radius: 6px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
 }
 
 .lobby-container button {
     padding: 0.6rem 1.2rem;
     border-radius: 6px;
     border: none;
-    background-color: #4caf50;
+    background-color: var(--color-primary);
 }
 
 .lobby-container button:hover {
-    background-color: #45a049;
+    background-color: var(--color-primary-hover);
 }
 
 .critical-button {
-    background-color: #bf7e43 !important;
+    background-color: var(--color-warning) !important;
     display: flex;
     margin-top: 1rem;
 }
@@ -82,13 +82,13 @@
 }
 
 .error {
-    color: red;
+    color: var(--color-error);
     font-weight: bold;
     text-align: center;
 }
 
 .message {
-    color: green;
+    color: var(--color-success);
     font-weight: bold;
     text-align: center;
 }
