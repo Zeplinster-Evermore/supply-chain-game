@@ -55,6 +55,21 @@ exports.createGroup = async ({ size, name, pattern, baseOrder, weeksUntilSpike }
     return { success: true, groupId: group.id };
 };
 
+exports.setShowGraphs = async (groupCode, { showGraphs }) => {
+    await prisma.gameGroup.update({
+        where: { groupCode },
+        data: { showGraphs }
+    });
+
+    return { success: true };
+};
+
+exports.getShowGraphs = groupCode =>
+    prisma.gameGroup.findUnique({
+        where: { groupCode },
+        select: { showGraphs: true }
+    });
+
 exports.getGroup = groupCode =>
     prisma.gameGroup.findUnique({
         where: { groupCode },

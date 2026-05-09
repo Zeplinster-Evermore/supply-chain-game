@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { Socket } from "socket.io-client";
+
 import type { Role, Game } from "types";
 import { GameGraphs } from "./GameGraphView";
+import { usePolling } from "../hooks/usePolling.tsx";
+
 import "../styles/GameView.css";
-import { Socket } from "socket.io-client";
 
 interface Props {
     socket: Socket;
     token: string;
     game: Game;
-    onExit: () => void;
 }
 
-export function AdminGameView({ socket, token, game, onExit }: Props) {
+export function AdminGameView({ socket, token, game }: Props) {
+    const navigate = useNavigate();
+
     const { roomCode, week, state: gameState } = game;
 
     const [showGraphs, setShowGraphs] = useState(false);
@@ -91,21 +97,25 @@ export function AdminGameView({ socket, token, game, onExit }: Props) {
         };
     }, [socket, roomCode]);
 
-// -------------------- PROCESS SERVER SENT EVENTS --------------------
-    useEffect(() => {
-        const eventSource = new EventSource(`/api/sse/events/${roomCode}`);
-        eventSource.addEventListener("showGraphs", (event) => {
-            const data = JSON.parse((event as any).data);
-            setShowGraphs(data.show);
+// -------------------- PROCESS POLLING --------------------
+    usePolling(async () => {
+        const groupCode = roomCode.substring(0, roomCode.indexOf("-"));
+        const response = await fetch(`/api/groups/${groupCode}/showGraphs`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
         });
-        return () => eventSource.close();
-    }, [roomCode]);
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        setShowGraphs(data.showGraphs);
+    }, 10000);
 
 // -------------------- ADMIN GAME VIEW --------------------
     return (
         <div className="game-view-container">
             <h2>Facilitator Panel - Team: {roomCode}</h2>
-            <button onClick={onExit}>Return to Full Game View</button>
+            <button onClick={() => navigate(-1)}>Return to Full Game View</button>
             {!showGraphs ? (
                 <div>
                     <h3>Current week: {week}</h3>

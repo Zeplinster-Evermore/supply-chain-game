@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import "../styles/LobbyView.css";
 
 interface Props {
@@ -8,11 +10,9 @@ interface Props {
     refreshGroups: () => void;
 }
 
-async function handleLogout(){
-    document.cookie = "role=a;expires=Thu, 18 Dec 2013 12:00:00 UTC";
-}
-
 export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshGroups }: Props) {
+    const navigate = useNavigate();
+
     const [newGroupSize, setNewGroupSize] = useState<number>(1);
     const [newGroupName, setNewGroupName] = useState<string>("");
     const [pattern, setPattern] = useState<"oneSpike"|"constant"|"manual">("oneSpike");
@@ -20,6 +20,11 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
     const [weeksUntilSpike, setWeeksUntilSpike] = useState<number>(4);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+
+    function handleGroupSelect(group: string) {
+        onGroupSelect(group);
+        navigate(`/admin/${group}`);
+    }
 
 // -------------------- CREATE NEW GROUP --------------------
     async function createGroup(event: React.FormEvent) {
@@ -53,12 +58,15 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
             <div className="lobby-grid">
                 <div className="lobby-panel">
                     <form onSubmit={createGroup}>
-                        <input
-                            type="text"
-                            placeholder="Set name of new game"
-                            onChange={(event) => setNewGroupName(event.target.value)}
-                            required
-                        />
+                        <label>
+                            Name of Game:
+                            <input
+                                type="text"
+                                placeholder="Set name of new game"
+                                onChange={(event) => setNewGroupName(event.target.value)}
+                                required
+                            />
+                        </label>
                         <label>
                             Number of Teams:
                             <input
@@ -73,7 +81,7 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                         <label>
                             Customer order pattern:
                             <select value={pattern} onChange={(event) => setPattern(event.target.value as any)}>
-                                <option value="oneSpike">One Spike</option>
+                                <option value="oneSpike">Spike on Week 5</option>
                                 <option value="constant">Constant</option>
                                 <option value="manual">Manual</option>
                             </select>
@@ -106,10 +114,6 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                     {message && <p className="message">{message}</p>}
 
                     {error && <p className="error">{error}</p>}
-
-                    <form className="logout-form" onSubmit={handleLogout}>
-                        <button type="submit">Logout</button>
-                    </form>
                 </div>
                 <div className="lobby-panel">
                     <h3>Or join an existing game</h3>
@@ -120,7 +124,7 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                             {availableGroups.map((group) => (
                                 <li key={group}>
                                     {group}{" "}
-                                    <button onClick={() => onGroupSelect(group)}>Join</button>
+                                    <button onClick={() => handleGroupSelect(group)}>Join</button>
                                 </li>
                             ))}
                         </ul>

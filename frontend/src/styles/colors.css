@@ -1,13 +1,48 @@
 :root {
-    --color-primary: #a31f34;
-    --color-primary-hover: #8f2030;
+    /* ── Brand ───────────────────────────────────────────── */
+    --color-primary:            #a31f34;
+    --color-primary-hover:      #8f2030;
+    --color-primary-focus-ring: rgba(163, 31, 52, 0.08);
+    --color-primary-shadow:     rgba(163, 31, 52, 0.25);
+    --color-primary-underline:  rgba(163, 31, 52, 0.4);
 
-    --color-secondary: #c2c0bf;
-    --color-secondary-hover: #bdbdbd;
+    /* ── Neutral ─────────────────────────────────────────── */
+    --color-secondary:          #c2c0bf;
+    --color-secondary-hover:    #bdbdbd;
 
-    --color-border: #ccc;
+    --color-border:             #ccc;
+    --color-divider:            #e8e4e0;
 
-    --color-warning: #bf7e43;
-    --color-error: #ff0000;
-    --color-success: #008000;
+    /* ── Background ──────────────────────────────────────── */
+    --color-bg-page:            #f5f3f0;
+    --color-bg-card:            #fff;
+    --color-bg-subtle:          #f7fafc;
+    --color-bg-input:           #faf9f8;
+
+    /* ── Text ────────────────────────────────────────────── */
+    --color-text-heading:       #1a1a1a;
+    --color-text-dark:          #2d3030;
+    --color-text-medium:        #4a4845;
+    --color-text-label:         #3a3530;
+    --color-text-body:          #6b6460;
+    --color-text-placeholder:   #b0a9a4;
+    --color-text-on-primary:    #fff;
+    --color-text-on-dark:       rgba(255, 255, 255, 0.9);
+
+    /* ── Nav overlays (on dark header background) ────────── */
+    --color-nav-hover-bg:       rgba(255, 255, 255, 0.12);
+    --color-nav-btn-bg:         rgba(255, 255, 255, 0.15);
+    --color-nav-btn-hover-bg:   rgba(255, 255, 255, 0.25);
+    --color-nav-btn-border:     rgba(255, 255, 255, 0.25);
+
+    /* ── Feedback ────────────────────────────────────────── */
+    --color-warning:            #bf7e43;
+
+    --color-error:              #ff0000;
+    --color-error-bg:           #fff5f5;
+    --color-error-border:       rgba(255, 0, 0, 0.15);
+
+    --color-success:            #008000;
+    --color-success-bg:         #f0faf0;
+    --color-success-border:     rgba(0, 128, 0, 0.15);
 }

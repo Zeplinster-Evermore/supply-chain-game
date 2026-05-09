@@ -4,9 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
     // clear old data
-    await prisma.order.deleteMany({});
     await prisma.user.deleteMany({});
-    await prisma.game.deleteMany({});
     await prisma.gameGroup.deleteMany({});
 
     const seedGroup = await prisma.gameGroup.create({

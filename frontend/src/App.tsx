@@ -1,120 +1,78 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
 
-import { PlayerGameView } from "./views/PlayerGameView.tsx";
-import { PlayerLobbyView } from "./views/PlayerLobbyView.tsx";
-import { AdminLobbyView } from "./views/AdminLobbyView.tsx";
-import { AdminGroupView } from "./views/AdminGroupView.tsx";
-import { AdminGameView } from "./views/AdminGameView.tsx";
+import { AppShell } from "./components/AppShell";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { GameRoute } from "./components/GameRoute";
+import { GroupRoute } from "./components/GroupRoute";
+
+import { LoginView } from "./views/LoginView";
+import { PlayerLobbyView } from "./views/PlayerLobbyView";
+import { AdminLobbyView } from "./views/AdminLobbyView";
+import { AboutSDSView } from "./views/AboutSDSView";
+import { AboutDeveloperView } from "./views/AboutDeveloperView";
+
 import "./styles/colors.css"
 import "./styles/LobbyView.css";
 
-import type { Game } from "./types";
-import { Role } from "./types";
-
 export default function App() {
-    const [game, setGame] = useState<Game | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
-    const [roomCode, setRoomCode] = useState<string>("");
-    const [groupCode, setGroupCode] = useState<string>("");
     const [availableRooms, setAvailableRooms] = useState<string[]>([]);
     const [availableGroups, setAvailableGroups] = useState<string[]>([]);
-    const [error, setError] = useState<string>("");
-    const [isRegistering, setRegistering] = useState<boolean>(false);
 
     const socketReference = useRef<Socket | null>(null);
 
 // -------------------- COOKIES --------------------
 
-    if((document.cookie).length > 0 && !token && !role){
-        let cookie = document.cookie;
-        let t = ""
-        let r = ""
-        for(let i = 0; i < cookie.length; i ++){
-            if(cookie.charAt(i) === '_'){
-                r = cookie.substring(0, i);
-                t = cookie.substring(i);
-            }
-        }
-        t = t.substring(6);
-        r = r.substring(5);
-        setToken(t);
-        setRole(r);
-        setError("");
+    function getCookie(name: string) {
+        return document.cookie
+            .split("; ")
+            .find(row => row.startsWith(name + "="))
+            ?.split("=")[1] || null;
     }
 
-// -------------------- LOGIN --------------------
-    async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const username = (form.elements.namedItem("username") as HTMLInputElement).value;
-        const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-        const response = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-        });
-
-        if (!response.ok) {
-            setError("Invalid username or password");
-            return;
-        }
-        const data = await response.json();
-        document.cookie = "role=" + data.role + "_token=" + data.token;
-        setToken(data.token);
-        setRole(data.role);
-        setError("");
+    if (!token && !role) {
+        let _token = getCookie("token");
+        let _role = getCookie("role");
+        if (_token) setToken(_token);
+        if (_role) setRole(_role);
     }
 
-// -------------------- DISPLAY REGISTRATION SCREEN --------------------
-    async function goToRegistration(){
-        setRegistering(true);
-    }
-
-// -------------------- REGISTER ACCOUNT --------------------
-    async function returnToLogin(event: React.FormEvent<HTMLFormElement>){
-        event.preventDefault();
-        const form = event.currentTarget;
-        const username = (form.elements.namedItem("username") as HTMLInputElement).value;
-        const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-        const password2 = (form.elements.namedItem("password2") as HTMLInputElement).value;
-        if(password === password2){
-            setRegistering(false); 
-            setError("");
-            await fetch("/api/auth/register", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ username, password }),
-            });
-            
+    const handleLogout = () => {
+        document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+        setToken(null);
+        setRole(null);
+        if (socketReference.current) {
+            socketReference.current.disconnect();
         }
-        else{
-           setError("Passwords must match");
-        }
-        
-    }
+    };
 
 // -------------------- FETCH GROUPS --------------------
+    function loadGroups() {
+        fetch("/api/groups", {
+            method: "GET",
+            headers: {Authorization: `Bearer ${token}`}
+        })
+            .then((response) => response.json())
+            .then((groups: { groupCode: string }[]) => setAvailableGroups(groups.map(group => group.groupCode)))
+            .catch(() => console.error("Failed to load groups"));
+    }
+
     useEffect(() => {
         if (!token) return;
 
-        fetch("/api/groups", {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` }})
-            .then((response) => response.json())
-            .then((groups: { groupCode: string }[]) => setAvailableGroups(groups.map(group => group.groupCode)))
-            .catch(() => setError("Failed to load groups"));
+        loadGroups();
 
         fetch("/api/games/rooms", {
             method: "GET",
-            headers: { Authorization: `Bearer ${token}` }})
+            headers: {Authorization: `Bearer ${token}`}
+        })
             .then((response) => response.json())
             .then((rooms: { roomCode: string }[]) => setAvailableRooms(rooms.map(room => room.roomCode)))
-            .catch(() => setError("Failed to load rooms"));
+            .catch(() => console.error("Failed to load rooms"));
     }, [token]);
 
 // -------------------- CONNECT SOCKET --------------------
@@ -123,9 +81,7 @@ export default function App() {
         if (socketReference.current) socketReference.current.disconnect(); // close any existing socket before reconnecting
 
         // initialize socket connection
-        const socket = io(import.meta.env.VITE_BACKEND_URL, {
-            auth: { token }
-        });
+        const socket = io(import.meta.env.VITE_BACKEND_URL, { auth: { token } });
         socketReference.current = socket;
 
         // event listeners
@@ -134,9 +90,6 @@ export default function App() {
         socket.on("error", (msg) => {
             console.error("Socket error:", msg);
         });
-        socket.on("stateUpdate", (updatedGame: Game) => {
-            setGame(updatedGame);
-        });
 
         return () => {
             socket.disconnect();
@@ -144,112 +97,74 @@ export default function App() {
         };
     }, [token]);
 
-// -------------------- LOAD GAME ON ROOM CHANGE --------------------
-    useEffect(() => {
-        if (!token || !roomCode) return;
+    return (
+        <Router>
+            <AppShell token={token} role={role} onLogout={handleLogout}>
+                <Routes>
+                    <Route path="/login" element={
+                        token ? <Navigate to={role === "ADMIN" ? "/admin" : "/lobby"}/> :
+                            <LoginView onLogin={(_token, _role) => { setToken(_token); setRole(_role); }} />
+                    }/>
+                    <Route path="/about/sds" element={<AboutSDSView/>}/>
+                    <Route path="/about/developer" element={<AboutDeveloperView/>}/>
 
-        fetch(`/api/games/${roomCode}`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` }})
-            .then((response) => response.json())
-            .then((data: Game) => setGame(data))
-            .catch(() => setError("Failed to load game"));
-    }, [token, roomCode]);
+                    <Route path="/lobby" element={
+                        <ProtectedRoute token={token}>
+                            <PlayerLobbyView
+                                availableRooms={availableRooms}
+                                onRoomSelect={(_, selectedRole) => setRole(selectedRole)}
+                            />
+                        </ProtectedRoute>
+                    }/>
+                    <Route path="/game/:roomCode" element={
+                        <ProtectedRoute token={token}>
+                            <GameRoute
+                                socket={socketReference.current}
+                                token={token!}
+                                role={role!}
+                            />
+                        </ProtectedRoute>
+                    }/>
 
-// ------------- REGISTRATION SCREEN ----------------------
-    if (isRegistering) {
-        return (
-            <div className="lobby-container">
-                <h1>Registration</h1>
-                <form onSubmit={returnToLogin}>
-                    <input name="username" placeholder="Username" required />
-                    <input name="password" type="password" placeholder="Password" required />
-                    <input name="password2" type="password" placeholder="Confirm Password" required />
-                    <button type="submit">Register</button>
-                </form>
-                {error && <p className="error-message">{error}</p>}
-            </div>
-        );
-    }
+                    <Route path="/admin" element={
+                        <ProtectedRoute token={token} role={role} adminRequired={true}>
+                            <AdminLobbyView
+                                token={token!}
+                                availableGroups={availableGroups}
+                                onGroupSelect={() => {}}
+                                refreshGroups={loadGroups}
+                            />
+                        </ProtectedRoute>
+                    }/>
+                    <Route path="/admin/:groupCode" element={
+                        <ProtectedRoute token={token} role={role} adminRequired={true}>
+                            <GroupRoute
+                                socket={socketReference.current}
+                                token={token!}
+                            />
+                        </ProtectedRoute>
+                    }/>
+                    <Route path="/admin/:groupCode/:roomCode" element={
+                        <ProtectedRoute token={token} role={role} adminRequired={true}>
+                            <GameRoute
+                                socket={socketReference.current}
+                                token={token!}
+                                role={role!}
+                            />
+                        </ProtectedRoute>
+                    }/>
 
-// -------------------- LOGIN SCREEN --------------------
-    if (!token) {
-        return (
-        <div className="lobby-container">
-            <h1>Supply Chain Game Login</h1>
-            <form onSubmit={handleLogin}>
-                <input name="username" placeholder="Username" required />
-                <input name="password" type="password" placeholder="Password" required />
-                <button type="submit">Login</button>
-            </form>
-            <form onSubmit={goToRegistration}>
-                <button type="submit">Register</button>
-            </form>
-            {error && <p className="error-message">{error}</p>}
-        </div>
-        );
-    }
+                    <Route path="/" element={
+                        token ? (
+                            <Navigate to={role === "ADMIN" ? "/admin" : "/lobby"}/>
+                        ) : (
+                            <Navigate to="/login"/>
+                        )
+                    }/>
 
-// -------------------- VIEWS --------------------
-    if (role === "ADMIN") {
-        // AdminLobbyView
-        if (!groupCode && !roomCode) {
-            return (
-                <AdminLobbyView
-                    token={token}
-                    availableGroups={availableGroups}
-                    onGroupSelect={(group) => setGroupCode(group)}
-                    refreshGroups={() => {
-                        fetch("/api/groups", {
-                            method: "GET",
-                            headers: { Authorization: `Bearer ${token}` }})
-                            .then((response) => response.json())
-                            .then((data) => setAvailableGroups(data.groups))
-                            .catch(() => setError("Failed to load groups"));
-                    }}
-                />
-            );
-        }
-
-        // AdminGroupView
-        if (groupCode && !roomCode) {
-            return (
-                <AdminGroupView
-                    socket={socketReference.current!}
-                    token={token}
-                    groupCode={groupCode}
-                    onRoomSelect={(room) => setRoomCode(room)}
-                    onExit={() => setGroupCode("")}
-                />
-            );
-        }
-
-        // AdminGameView
-        if (roomCode) {
-            if (!game) return <p>Loading game state...</p>;
-            return <AdminGameView
-                socket={socketReference.current!}
-                token={token}
-                game={game}
-                onExit={() => setRoomCode("")}
-            />
-        }
-    }
-
-    // PlayerLobbyView
-    if (!roomCode) {
-        return (
-            <PlayerLobbyView
-                availableRooms={availableRooms}
-                onRoomSelect={(selectedRoom, selectedRole) => {
-                    setRoomCode(selectedRoom);
-                    setRole(selectedRole);
-                }}
-            />
-        );
-    }
-
-    // PlayerGameView
-    if (!game) return <p>Loading game state...</p>;
-    return <PlayerGameView socket={socketReference.current!} token={token} role={role as Role} game={game} />;
+                    <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+            </AppShell>
+        </Router>
+    );
 }

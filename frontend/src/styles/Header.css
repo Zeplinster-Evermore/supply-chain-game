@@ -1,0 +1,110 @@
+.app-header {
+    background-color: var(--color-primary);
+    color: var(--color-text-on-primary);
+    padding: 0.875rem 2rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+footer {
+    background-color: var(--color-primary);
+    color: var(--color-text-on-primary);
+    padding: 0.875rem 2rem;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.header-container {
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.header-logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.sds-logo {
+    height: 44px;
+    width: auto;
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
+}
+
+.header-title h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.2;
+    font-family: 'Georgia', serif;
+    letter-spacing: -0.01em;
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    color: var(--color-text-on-primary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.875rem;
+    border-radius: 3px;
+    transition: background-color 0.15s;
+}
+
+.nav-link:hover {
+    background-color: var(--color-nav-hover-bg);
+}
+
+.logout-button {
+    color: var(--color-text-on-primary);
+    background-color: var(--color-nav-btn-bg);
+    border: 1px solid var(--color-nav-btn-border);
+    padding: 0.4rem 0.875rem;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: background-color 0.15s;
+}
+
+.logout-button:hover {
+    background-color: var(--color-nav-btn-hover-bg);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .app-header,
+    footer {
+        padding: 0.875rem 1rem;
+    }
+
+    .header-container {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .header-logo-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+
+    .header-nav {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .header-title h1 {
+        font-size: 1.1rem;
+    }
+}

@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
+
+import { Socket } from "socket.io-client";
+
 import type { Role, Game } from "types";
 import { GameGraphs } from "./GameGraphView";
+import { usePolling } from "../hooks/usePolling.tsx";
 import "../styles/GameView.css";
-import { Socket } from "socket.io-client";
 
 interface Props {
     socket: Socket;
@@ -39,15 +42,19 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
         };
     }, [socket, roomCode]);
 
-// -------------------- PROCESS SERVER SENT EVENTS --------------------
-    useEffect(() => {
-        const eventSource = new EventSource(`/api/sse/events/${roomCode}`);
-        eventSource.addEventListener("showGraphs", (event) => {
-            const data = JSON.parse((event as any).data);
-            setShowGraphs(data.show);
+// -------------------- PROCESS POLLING --------------------
+    usePolling(async () => {
+        const groupCode = roomCode.substring(0, roomCode.indexOf("-"));
+        const response = await fetch(`/api/groups/${groupCode}/showGraphs`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
         });
-        return () => eventSource.close();
-    }, [roomCode]);
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        setShowGraphs(data.showGraphs);
+    }, 10000);
 
 // -------------------- PLACE ORDER --------------------
     async function submitOrder(event: React.FormEvent) {

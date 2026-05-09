@@ -30,6 +30,7 @@ model GameGroup {
   id        Int      @id @default(autoincrement())
   groupCode String   @unique
   week      Int      @default(1)
+  showGraphs  Boolean @default(false)
   games     Game[]
 }
 
@@ -39,7 +40,7 @@ model Game {
   groupId   Int
   state     Json
   createdAt DateTime @default(now())
-  group     GameGroup @relation(fields: [groupId], references: [id])
+  group     GameGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   orders    Order[]
   users     User[]
 }
@@ -52,6 +53,6 @@ model Order {
   backlog   Int      @default(0)
   week      Int
   createdAt DateTime @default(now())
-  game      Game     @relation(fields: [gameId], references: [id])
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   @@unique([gameId, role, week], name: "gameId_role_week_key")
 }

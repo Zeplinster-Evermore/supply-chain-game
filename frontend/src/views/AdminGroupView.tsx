@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import "../styles/GameView.css";
 import { Socket } from "socket.io-client";
 
@@ -6,17 +8,23 @@ interface Props {
     socket: Socket;
     token: string;
     groupCode: string;
-    onRoomSelect: (roomCode: string) => void;
-    onExit: () => void;
 }
 
-export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit }: Props) {
+export function AdminGroupView({ socket, token, groupCode }: Props) {
+    const navigate = useNavigate();
+
     const [games, setGames] = useState<string[]>([]);
     const [week, setWeek] = useState<number>(1);
     const [selectedGame, setSelectedGame] = useState<string>("");
     const [newCustomerOrder, setNewCustomerOrder] = useState<number>(0);
+    const [showGraphs, setShowGraphs] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+
+    function handleRoomSelect(room: string) {
+        setSelectedGame(room);
+        navigate(`${room}`);
+    }
 
 // -------------------- LOAD GAMES IN GROUP --------------------
     async function loadGroupData() {
@@ -25,13 +33,17 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
             });
+            if (!response.ok) {
+                throw new Error("Group not found.");
+            }
             const data = await response.json();
             setGames(data.games);
             setWeek(data.week);
+            setShowGraphs(data.showGraphs);
         }
         catch (error) {
             console.error("Failed to load games", error);
-            setError("Failed to load games");
+            navigate("/admin", { replace: true });
         }
     }
 
@@ -119,23 +131,24 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
         }
     }
 
-// -------------------- TRIGGER SHOW GRAPHS SSE --------------------
-    async function showGraphsForAllRooms() {
+// -------------------- MANIPULATE GRAPH VISIBILITY --------------------
+    async function showGraphsForAllRooms(showGraphs: boolean) {
         try {
-            const response = await fetch("/api/sse/showGraphs", {
-                method: "POST",
+            const response = await fetch(`/api/groups/${groupCode}/showGraphs`, {
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ roomCodes: games }),
+                body: JSON.stringify({ showGraphs: showGraphs }),
             });
-            if (!response.ok) throw new Error("Failed to trigger showGraphs SSE");
-            setMessage("Triggered graph view for all rooms.");
+            if (!response.ok) throw new Error("Failed to update graph visibility");
+            setMessage((showGraphs ? "Triggered" : "Hid") + " graph view for all rooms.");
+            setShowGraphs(showGraphs);
         }
         catch (error) {
-            console.error("SSE trigger failed", error);
-            setError("Failed to trigger showGraphs SSE.");
+            console.error("Graph visibility update failed", error);
+            setError("Failed to update graph visibility.");
         }
     }
 
@@ -157,20 +170,19 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
                                 <li key={game}>
                                     {game}{" "}
                                     <button onClick={() => {
-                                        onRoomSelect(game);
-                                        setSelectedGame(game);
+                                        handleRoomSelect(game);
                                     }}>Open</button>
                                 </li>
                             ))}
                         </ul>
                     )}
-                    <button onClick={onExit}>Return to Lobby</button>
+                    <button onClick={() => navigate(-1)}>Return to Lobby</button>
                 </div>
 
                 <div className="lobby-panel">
                     <form onSubmit={addCustomerOrder}>
                         <label>
-                            New Customer Order:
+                            Override Customer Order:
                             <input
                                 type="number"
                                 placeholder="Customer order amount"
@@ -185,7 +197,12 @@ export function AdminGroupView({ socket, token, groupCode, onRoomSelect, onExit 
 
                     <button onClick={advanceWeek}>Advance Week</button>
 
-                    <button className="critical-button" onClick={showGraphsForAllRooms}>Show Graphs in All Games</button>
+                    {!showGraphs &&
+                        <button className="critical-button" onClick={() => showGraphsForAllRooms(true)}>Show Graphs in
+                            All Games</button>}
+                    {showGraphs &&
+                        <button className="critical-button" onClick={() => showGraphsForAllRooms(false)}>Hide Graphs in
+                            All Games</button>}
 
                     {message && <p className="message">{message}</p>}
                     {error && <p className="error">{error}</p>}

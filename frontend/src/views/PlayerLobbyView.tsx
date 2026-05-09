@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 import type { Role } from "types";
 import "../styles/LobbyView.css";
 
@@ -6,11 +8,14 @@ interface Props {
     onRoomSelect: (roomCode: string, role: Role) => void;
 }
 
-async function handleLogout(){
-    document.cookie = "role=a;expires=Thu, 18 Dec 2013 12:00:00 UTC";
-}
-
 export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
+    const navigate = useNavigate();
+
+    function handleRoomSelect(room: string, role: Role) {
+        onRoomSelect(room, role);
+        navigate(`/game/${room}`);
+    }
+
 // -------------------- PLAYER LOBBY VIEW --------------------
     return (
         <div className="lobby-container">
@@ -24,7 +29,7 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
                         const form = event.currentTarget;
                         const roomCode = (form.elements.namedItem("roomCode") as HTMLSelectElement).value;
                         const role = (form.elements.namedItem("role") as HTMLSelectElement).value as Role;
-                        onRoomSelect(roomCode, role);
+                        handleRoomSelect(roomCode, role);
                     }}
                 >
                     <label>
@@ -49,9 +54,6 @@ export function PlayerLobbyView({ availableRooms, onRoomSelect }: Props) {
                     <button type="submit">Join Game</button>
                 </form>
             )}
-            <form className="logout-form" onSubmit={handleLogout}>
-                    <button type="submit">Logout</button>
-            </form>
         </div>
     );
 }
