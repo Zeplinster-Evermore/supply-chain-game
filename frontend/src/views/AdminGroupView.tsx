@@ -1,8 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import "../styles/GameView.css";
 import { Socket } from "socket.io-client";
+
+import { usePolling } from "../hooks/usePolling";
+
+import "../styles/GameView.css";
+
+
+const ROLES = ["RETAILER", "WHOLESALER", "DISTRIBUTOR", "FACTORY"] as const;
+type Role = typeof ROLES[number];
+type OrderStatuses = Record<string, Record<Role, { amount: number }>>;
 
 interface Props {
     socket: Socket;
@@ -18,6 +26,8 @@ export function AdminGroupView({ socket, token, groupCode }: Props) {
     const [selectedGame, setSelectedGame] = useState<string>("");
     const [newCustomerOrder, setNewCustomerOrder] = useState<number>(0);
     const [showGraphs, setShowGraphs] = useState(false);
+    const [orderStatuses, setOrderStatuses] = useState<OrderStatuses>({});
+    const [isManual, setIsManual] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
@@ -47,10 +57,66 @@ export function AdminGroupView({ socket, token, groupCode }: Props) {
         }
     }
 
+    /**
+     * Hides the customer orders form if the first game in the group has a bunch of orders.
+     * Should probably do this in a reasonable way instead.
+     */
+    async function getIsManualOrders() {
+        try {
+            const gameCode = groupCode + "-0";
+            const response = await fetch(`/api/games/${gameCode}`, {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) {
+                throw new Error("Game not found.");
+            }
+            const data = await response.json();
+            const gameState = data.state;
+            const customerOrders = gameState.customerOrder;
+            setIsManual(customerOrders.length < 50);
+        }
+        catch {
+            console.error("Failed to determine game type", error);
+        }
+    }
+
     useEffect(() => {
         void loadGroupData();
+        void getIsManualOrders();
     }, [token, groupCode]);
 
+// -------------------- LOAD ORDER STATUSES --------------------
+    const gamesRef = useRef<string[]>([]);
+    useEffect(() => { gamesRef.current = games; }, [games]);
+
+    const loadOrderStatuses = useCallback(async () => {
+        if (gamesRef.current.length === 0) return;
+        try {
+            const results = await Promise.all(
+                gamesRef.current.map((room) =>
+                    fetch(`/api/orders/orderStatus?roomCode=${room}`, {
+                        method: "GET",
+                        headers: { Authorization: `Bearer ${token}` },
+                    }).then((r) => (r.ok ? r.json() : null))
+                )
+            );
+            const statuses: OrderStatuses = {};
+            gamesRef.current.forEach((room, i) => {
+                if (results[i]) statuses[room] = results[i].status;
+            });
+            setOrderStatuses(statuses);
+        }
+        catch (error) {
+            console.error("Failed to load order statuses", error);
+        }
+    }, [token]);
+
+    usePolling(loadOrderStatuses, 10000);
+
+    useEffect(() => {
+        if (games.length > 0) void loadOrderStatuses();
+    }, [games]);
 
 // -------------------- HANDLE SELECTED GAME --------------------
     useEffect(() => {
@@ -180,7 +246,7 @@ export function AdminGroupView({ socket, token, groupCode }: Props) {
                 </div>
 
                 <div className="lobby-panel">
-                    <form onSubmit={addCustomerOrder}>
+                    {isManual && <form onSubmit={addCustomerOrder}>
                         <label>
                             Override Customer Order:
                             <input
@@ -193,7 +259,7 @@ export function AdminGroupView({ socket, token, groupCode }: Props) {
                             />
                         </label>
                         <button type="submit">Update or Add Customer Order</button>
-                    </form>
+                    </form>}
 
                     <button onClick={advanceWeek}>Advance Week</button>
 
@@ -206,6 +272,47 @@ export function AdminGroupView({ socket, token, groupCode }: Props) {
 
                     {message && <p className="message">{message}</p>}
                     {error && <p className="error">{error}</p>}
+                </div>
+
+                <div className="lobby-panel" style={{ gridColumn: "1 / -1" }}>
+                    <h3>Week {week} — Order Status</h3>
+                    <div style={{ overflowX: "auto" }}>
+                        <table className="game-overview-table" style={{ width: "100%" }}>
+                            <thead>
+                            <tr>
+                                <th>Team</th>
+                                {ROLES.map((role) => (
+                                    <th key={role}>{role}</th>
+                                ))}
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {games.map((room) => {
+                                const status = orderStatuses[room];
+                                return (
+                                    <tr key={room}>
+                                        <td>{room}</td>
+                                        {ROLES.map((role) => {
+                                            const amount = status?.[role]?.amount;
+                                            const placed = amount !== undefined && amount >= 0;
+                                            return (
+                                                <td key={role}>
+                                                    {status === undefined ? (
+                                                        <span style={{ color: "var(--color-text-placeholder)" }}>—</span>
+                                                    ) : placed ? (
+                                                        <span className="order-placed">{amount}</span>
+                                                    ) : (
+                                                        <span className="order-awaiting">pending</span>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                );
+                            })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

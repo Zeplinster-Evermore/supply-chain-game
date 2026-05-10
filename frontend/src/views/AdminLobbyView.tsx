@@ -81,25 +81,27 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                         <label>
                             Customer order pattern:
                             <select value={pattern} onChange={(event) => setPattern(event.target.value as any)}>
-                                <option value="oneSpike">Spike on Week 5</option>
-                                <option value="constant">Constant</option>
+                                <option value="oneSpike">Double after X weeks</option>
                                 <option value="manual">Manual</option>
+                                <option value="constant">Constant</option>
                             </select>
                         </label>
-                        <label>
-                            Base customer order:
-                            <input
-                                type="number"
-                                min={1}
-                                placeholder="Set base customer order"
-                                value={baseOrder}
-                                onChange={(event) => setBaseOrder(Number(event.target.value))}
-                                required
-                            />
-                        </label>
+                        {pattern !== "manual" &&
+                            <label>
+                                Base customer order:
+                                <input
+                                    type="number"
+                                    min={1}
+                                    placeholder="Set base customer order"
+                                    value={baseOrder}
+                                    onChange={(event) => setBaseOrder(Number(event.target.value))}
+                                    required
+                                />
+                            </label>
+                        }
                         {pattern === "oneSpike" &&
                             <label>
-                                Weeks until customer orders spike:
+                                Weeks before customer orders spike (order doubles on week X+1):
                                 <input
                                     type="number"
                                     min={1}

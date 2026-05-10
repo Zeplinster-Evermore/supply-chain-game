@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { Socket } from "socket.io-client";
 
@@ -23,38 +23,19 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
     const [error, setError] = useState<string>("");
     const [showGraphs, setShowGraphs] = useState(false);
 
-// -------------------- CONNECT SOCKET --------------------
-    useEffect(() => {
-        if (!socket || !socket.connected) return;
-        socket.emit("joinRoom", roomCode);
-
-        const handleStateUpdate = (updatedGame: Game) => {
-            if (updatedGame.roomCode === roomCode) {
-                setMessage("Week has been advanced");
-                void getOutgoingOrder();
-            }
-        };
-
-        socket.on("stateUpdate", handleStateUpdate);
-
-        return () => {
-            socket.off("stateUpdate", handleStateUpdate);
-        };
-    }, [socket, roomCode]);
-
 // -------------------- PROCESS POLLING --------------------
-    usePolling(async () => {
+    const pollShowGraphs = useCallback(async () => {
         const groupCode = roomCode.substring(0, roomCode.indexOf("-"));
         const response = await fetch(`/api/groups/${groupCode}/showGraphs`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) return;
-
         const data = await response.json();
-
         setShowGraphs(data.showGraphs);
-    }, 10000);
+    }, [roomCode, token]);
+
+    usePolling(pollShowGraphs, 10000);
 
 // -------------------- PLACE ORDER --------------------
     async function submitOrder(event: React.FormEvent) {
@@ -89,7 +70,7 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
     }
 
 // -------------------- GET OUTGOING ORDER --------------------
-    async function getOutgoingOrder() {
+    const getOutgoingOrder = useCallback(async () => {
         try {
             const response = await fetch(`/api/orders/outgoingOrder?roomCode=${roomCode}&role=${role}`, {
                 method: "GET",
@@ -102,7 +83,26 @@ export function PlayerGameView({ socket, token, game, role }: Props) {
         catch (error) {
             console.error("Failed to get outgoing order", error);
         }
-    }
+    }, [roomCode, role, token]);
+
+// -------------------- CONNECT SOCKET --------------------
+    useEffect(() => {
+        if (!socket || !socket.connected) return;
+        socket.emit("joinRoom", roomCode);
+
+        const handleStateUpdate = (updatedGame: Game) => {
+            if (updatedGame.roomCode === roomCode) {
+                setMessage("Week has been advanced");
+                void getOutgoingOrder();
+            }
+        };
+
+        socket.on("stateUpdate", handleStateUpdate);
+
+        return () => {
+            socket.off("stateUpdate", handleStateUpdate);
+        };
+    }, [socket, roomCode, getOutgoingOrder]);
 
 // -------------------- PLAYER GAME VIEW --------------------
     return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Socket } from "socket.io-client";
@@ -36,7 +36,7 @@ export function AdminGameView({ socket, token, game }: Props) {
     });
 
 // -------------------- CONFIRM ORDER STATUSES --------------------
-    async function getOrderStatus() {
+    const getOrderStatus = useCallback(async () => {
         try {
             const response = await fetch(`/api/orders/orderStatus?roomCode=${roomCode}`, {
                 method: "GET",
@@ -49,10 +49,10 @@ export function AdminGameView({ socket, token, game }: Props) {
         catch (error) {
             console.error("Failed to check order statuses", error);
         }
-    }
+    }, [roomCode, token]);
 
 // -------------------- GATHER ALL ORDER DATA --------------------
-    async function getAllOrders() {
+    const getAllOrders = useCallback(async () => {
         try {
             const response = await fetch(`/api/orders/allOrders?roomCode=${roomCode}`, {
                 method: "GET",
@@ -61,12 +61,11 @@ export function AdminGameView({ socket, token, game }: Props) {
             if (!response.ok) throw new Error("Failed to fetch all orders");
             const data = await response.json();
             if (data.success) setOrders(data.orders);
-
         }
         catch (error) {
             console.error("Failed to retrieve all game orders", error);
         }
-    }
+    }, [roomCode, token]);
 
 // -------------------- CONNECT SOCKET -----------
     useEffect(() => {
@@ -95,21 +94,26 @@ export function AdminGameView({ socket, token, game }: Props) {
         return () => {
             socket.off("stateUpdate", handleStateUpdate);
         };
-    }, [socket, roomCode]);
+    }, [socket, roomCode, getOrderStatus, getAllOrders]);
 
 // -------------------- PROCESS POLLING --------------------
-    usePolling(async () => {
+    const pollGameState = useCallback(async () => {
         const groupCode = roomCode.substring(0, roomCode.indexOf("-"));
-        const response = await fetch(`/api/groups/${groupCode}/showGraphs`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) return;
+        const [showGraphsRes] = await Promise.all([
+            fetch(`/api/groups/${groupCode}/showGraphs`, {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+            }),
+            getOrderStatus(),
+            getAllOrders(),
+        ]);
+        if (showGraphsRes.ok) {
+            const data = await showGraphsRes.json();
+            setShowGraphs(data.showGraphs);
+        }
+    }, [roomCode, token, getOrderStatus, getAllOrders]);
 
-        const data = await response.json();
-
-        setShowGraphs(data.showGraphs);
-    }, 10000);
+    usePolling(pollGameState, 10000);
 
 // -------------------- ADMIN GAME VIEW --------------------
     return (
