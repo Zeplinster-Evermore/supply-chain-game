@@ -1,6 +1,31 @@
 import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { Game } from "types";
+
+import "../styles/colors.css";
+
+const ROLE_COLORS = {
+    retailer:  "#111111",
+    wholesaler:"#1a56db",
+    distributor:"#057a55",
+    factory:   "#e02424",
+    customer:  "#7e3af2",
+};
+
+const inventoryLines = [
+    { key: "retailerInventory",   label: "Retailer",    color: ROLE_COLORS.retailer,    strokeWidth: 4 },
+    { key: "wholesalerInventory", label: "Wholesaler",  color: ROLE_COLORS.wholesaler,  strokeWidth: 4 },
+    { key: "distributorInventory",label: "Distributor", color: ROLE_COLORS.distributor, strokeWidth: 4 },
+    { key: "factoryInventory",    label: "Factory",     color: ROLE_COLORS.factory,     strokeWidth: 4 },
+];
+
+const orderLines = [
+    { key: "retailerOrder",   label: "Retailer",       color: ROLE_COLORS.retailer,    strokeWidth: 4 },
+    { key: "wholesalerOrder", label: "Wholesaler",     color: ROLE_COLORS.wholesaler,  strokeWidth: 4 },
+    { key: "distributorOrder",label: "Distributor",    color: ROLE_COLORS.distributor, strokeWidth: 4 },
+    { key: "factoryOrder",    label: "Factory",        color: ROLE_COLORS.factory,     strokeWidth: 4 },
+    { key: "customerOrder",   label: "Customer Orders",color: ROLE_COLORS.customer,    strokeWidth: 10 },
+];
 
 interface Props {
     token: string;
@@ -64,22 +89,12 @@ export function GameGraphs({ token, game }: Props) {
         customerOrder: gameState.customerOrder[i],
     }));
 
-    const inventoryLines = [
-        { key: "retailerInventory", label: "Retailer Inventory", color: "#8884d8" },
-        { key: "wholesalerInventory", label: "Wholesaler Inventory", color: "#ff7300" },
-        { key: "distributorInventory", label: "Distributor Inventory", color: "#0088FE" },
-        { key: "factoryInventory", label: "Factory Inventory", color: "#FFBB28" },
-    ];
-    const orderLines = [
-        { key: "retailerOrder", label: "Retailer Inventory", color: "#8884d8" },
-        { key: "wholesalerOrder", label: "Wholesaler Inventory", color: "#ff7300" },
-        { key: "distributorOrder", label: "Distributor Inventory", color: "#0088FE" },
-        { key: "factoryOrder", label: "Factory Inventory", color: "#FFBB28" },
-        { key: "customerOrder", label: "Customer Orders", color: "#FF0000" },
-    ];
-
-    const [visibleInventoryLines, setVisibleInventoryLines] = useState<string[]>(inventoryLines.map((line) => line.key));
-    const [visibleOrderLines, setVisibleOrderLines] = useState<string[]>(orderLines.map((line) => line.key));
+    const [visibleInventoryLines, setVisibleInventoryLines] = useState<string[]>(
+        inventoryLines.map((l) => l.key)
+    );
+    const [visibleOrderLines, setVisibleOrderLines] = useState<string[]>(
+        orderLines.filter((l) => l.key !== "customerOrder").map((l) => l.key)
+    );
     const toggleInventoryLine = (key: string) => {
         setVisibleInventoryLines((prev) =>
             prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
@@ -127,26 +142,44 @@ export function GameGraphs({ token, game }: Props) {
                         <XAxis dataKey="week" />
                         <YAxis />
                         <Tooltip />
-                        <Legend />
                         {inventoryLines
                             .filter((line) => visibleInventoryLines.includes(line.key))
                             .map((line) => (
-                                <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} />
+                                <Line
+                                    key={line.key}
+                                    type="monotone"
+                                    dataKey={line.key}
+                                    stroke={line.color}
+                                    strokeWidth={line.strokeWidth}
+                                    dot={false}
+                                    name={line.label}
+                                />
                             ))}
                     </LineChart>
                 </ResponsiveContainer>
             </div>
             <div className="chart-legend">
-                {inventoryLines.map((line) => (
-                    <label key={line.key} className="chart-legend-item">
-                        <input
-                            type="checkbox"
-                            checked={visibleInventoryLines.includes(line.key)}
-                            onChange={() => toggleInventoryLine(line.key)}
-                        />
-                        {line.label}
-                    </label>
-                ))}
+                {inventoryLines.map((line) => {
+                    const active = visibleInventoryLines.includes(line.key);
+                    return (
+                        <label key={line.key} className="chart-legend-item">
+                            <input
+                                type="checkbox"
+                                checked={active}
+                                onChange={() => toggleInventoryLine(line.key)}
+                                style={{ display: "none" }}
+                            />
+                            <span
+                                className="legend-swatch"
+                                style={{
+                                    background: active ? line.color : "transparent",
+                                    border: `2.5px solid ${line.color}`,
+                                }}
+                            />
+                            {line.label}
+                        </label>
+                    );
+                })}
             </div>
 
             <h3 className="chart-title">Orders by Week</h3>
@@ -157,26 +190,47 @@ export function GameGraphs({ token, game }: Props) {
                         <XAxis dataKey="week" />
                         <YAxis />
                         <Tooltip />
-                        <Legend />
                         {orderLines
                             .filter((line) => visibleOrderLines.includes(line.key))
                             .map((line) => (
-                                <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} />
+                                <Line
+                                    key={line.key}
+                                    type="monotone"
+                                    dataKey={line.key}
+                                    stroke={line.color}
+                                    strokeWidth={line.strokeWidth}
+                                    dot={false}
+                                    name={line.label}
+                                />
                             ))}
                     </LineChart>
                 </ResponsiveContainer>
             </div>
             <div className="chart-legend">
-                {orderLines.map((line) => (
-                    <label key={line.key} className="chart-legend-item">
-                        <input
-                            type="checkbox"
-                            checked={visibleOrderLines.includes(line.key)}
-                            onChange={() => toggleOrderLine(line.key)}
-                        />
-                        {line.label}
-                    </label>
-                ))}
+                {orderLines.map((line) => {
+                    const active = visibleOrderLines.includes(line.key);
+                    return (
+                        <label key={line.key} className="chart-legend-item">
+                            <input
+                                type="checkbox"
+                                checked={active}
+                                onChange={() => toggleOrderLine(line.key)}
+                                style={{ display: "none" }}
+                            />
+                            <span
+                                className="legend-swatch"
+                                style={{
+                                    background: active ? line.color : "transparent",
+                                    border: `2.5px solid ${line.color}`,
+                                    // Customer orders swatch is a bit taller to hint at the thicker line
+                                    height: line.key === "customerOrder" ? "14px" : "12px",
+                                    width:  line.key === "customerOrder" ? "22px"  : "18px",
+                                }}
+                            />
+                            {line.label}
+                        </label>
+                    );
+                })}
             </div>
         </div>
     );

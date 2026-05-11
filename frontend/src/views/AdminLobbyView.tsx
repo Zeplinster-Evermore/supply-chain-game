@@ -81,14 +81,14 @@ export function AdminLobbyView({ token, availableGroups, onGroupSelect, refreshG
                         <label>
                             Customer order pattern:
                             <select value={pattern} onChange={(event) => setPattern(event.target.value as any)}>
-                                <option value="oneSpike">Double after X weeks</option>
+                                <option value="oneSpike">Step after X weeks</option>
                                 <option value="manual">Manual</option>
                                 <option value="constant">Constant</option>
                             </select>
                         </label>
                         {pattern !== "manual" &&
                             <label>
-                                Base customer order:
+                                Base order:
                                 <input
                                     type="number"
                                     min={1}

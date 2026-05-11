@@ -160,6 +160,15 @@
     max-width: 100%;
 }
 
+.legend-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+
 @media (max-width: 800px) {
     .chart-panel {
         height: 240px;
