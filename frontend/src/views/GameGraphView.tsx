@@ -131,6 +131,12 @@ export function GameGraphs({ token, game }: Props) {
                         </tr>
                     ))}
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td><strong>{roles.reduce((sum, role) => sum + costs[role], 0).toFixed(2)}</strong></td>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
 

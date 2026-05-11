@@ -118,6 +118,10 @@
     text-align: left;
 }
 
+.costs-table tfoot td {
+    border-top: 4px solid var(--color-border);
+}
+
 .chart-panel {
     width: 100%;
     box-sizing: border-box;

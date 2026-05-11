@@ -43,6 +43,7 @@ footer {
     line-height: 1.2;
     font-family: 'Georgia', serif;
     letter-spacing: -0.01em;
+    color: var(--color-text-on-dark);
 }
 
 .header-nav {
