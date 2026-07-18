@@ -6,7 +6,7 @@ const app = express();
 
 // -------------------- MIDDLEWARE --------------------
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 
 // -------------------- ROUTES --------------------
 app.use("/api/auth", require("./routes/auth.routes"));
@@ -16,9 +16,9 @@ app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/sse", require("./routes/sse.routes"));
 
 // -------------------- STATIC FILES --------------------
-app.use(express.static(path.join(__dirname, "frontend/dist")));
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get(/^\/(?!api).*$/, (request, response) => {
-    response.sendFile(path.join(__dirname, "frontend/dist/index.html"));
+    response.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
 
 module.exports = app;

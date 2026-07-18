@@ -54,7 +54,7 @@ export default function App() {
     function loadGroups() {
         fetch("/api/groups", {
             method: "GET",
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}` }
         })
             .then((response) => response.json())
             .then((groups: { groupCode: string }[]) => setAvailableGroups(groups.map(group => group.groupCode)))
